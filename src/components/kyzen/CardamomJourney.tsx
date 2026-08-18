@@ -58,6 +58,8 @@ export function CardamomJourney() {
     };
     resize();
     window.addEventListener("resize", resize);
+    // Section height changes between mobile/desktop — recompute trigger bounds.
+    ScrollTrigger.refresh();
 
     const st = ScrollTrigger.create({
       trigger: section,
@@ -232,7 +234,7 @@ export function CardamomJourney() {
       window.removeEventListener("resize", resize);
       st.kill();
     };
-  }, [ScrollTrigger, gsap, reduced]);
+  }, [ScrollTrigger, gsap, reduced, mobile]);
 
   // Shorter scroll distance on mobile so the story stays tight.
   const height = reduced ? "auto" : mobile ? "380vh" : "620vh";
@@ -244,7 +246,7 @@ export function CardamomJourney() {
       className="relative"
       style={{ height }}
     >
-      <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
+      <div className="pointer-events-none sticky top-0 h-[100svh] w-full overflow-hidden">
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
         {/* Stage copy — opacity is driven by the render loop above */}
