@@ -63,8 +63,8 @@ export function CardamomJourney() {
       trigger: section,
       start: "top top",
       end: "bottom bottom",
-      pin: canvas.parentElement,
-      pinSpacing: false,
+      // Pinning is handled by CSS `position: sticky` on the canvas wrapper —
+      // ScrollTrigger only reports progress so the two never fight.
       scrub: true,
       onUpdate: (self) => {
         progress.current = self.progress;
