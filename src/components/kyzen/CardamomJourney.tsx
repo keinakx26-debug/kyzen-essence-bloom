@@ -117,7 +117,7 @@ export function CardamomJourney() {
         const packW = base * 0.3;
         const packH = packW * 1.45;
         for (let i = 0; i < seeds.length; i++) {
-          const s = seeds[i];
+          const s = seeds[i]!;
           // start: packed inside the pod cavity
           const sx = cx + Math.cos(s.a) * base * 0.06 * s.rr;
           const sy = cy + Math.sin(s.a) * base * 0.22 * s.rr;
@@ -165,7 +165,7 @@ export function CardamomJourney() {
             baseW * (0.86 + packetIn * 0.14),
             baseH * (0.86 + packetIn * 0.14),
             spinT * Math.PI * 2,
-            products[0].size,
+            products[0]!.size,
             packetIn,
           );
         } else {
@@ -174,8 +174,8 @@ export function CardamomJourney() {
           const local = mapRange(smooth, 0.78, 0.995) * segs;
           const idx = Math.min(segs - 1, Math.floor(local));
           const k = easeInOut(local - idx);
-          const out = products[idx];
-          const inc = products[idx + 1];
+          const out = products[idx]!;
+          const inc = products[idx + 1]!;
           const scaleFor = (i: number) => 1 + i * 0.06; // family grows subtly
 
           // outgoing
@@ -205,8 +205,8 @@ export function CardamomJourney() {
 
       // ---- stage copy opacity, driven off the same timeline -------------
       for (const el of stages) {
-        const from = parseFloat(el.dataset.from || "0");
-        const to = parseFloat(el.dataset.to || "1");
+        const from = parseFloat(el.dataset['from'] || "0");
+        const to = parseFloat(el.dataset['to'] || "1");
         const a =
           mapRange(smooth, from, from + 0.05) *
           (1 - mapRange(smooth, to - 0.05, to));
