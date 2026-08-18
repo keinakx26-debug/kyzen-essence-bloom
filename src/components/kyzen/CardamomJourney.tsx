@@ -79,6 +79,7 @@ export function CardamomJourney() {
       const h = canvas.clientHeight;
       const p = progress.current;
       smooth += (p - smooth) * 0.12;
+      if (Math.abs(p - smooth) < 0.002) smooth = p;
       const t = reduced ? 0 : time;
       ctx.clearRect(0, 0, w, h);
 
@@ -171,7 +172,7 @@ export function CardamomJourney() {
         } else {
           // cross-transitions: outgoing pushes back + fades, incoming steps forward
           const segs = products.length - 1; // 3 transitions
-          const local = mapRange(smooth, 0.78, 0.95) * segs;
+          const local = mapRange(smooth, 0.76, 0.9) * segs;
           const idx = Math.min(segs - 1, Math.floor(local));
           const k = easeInOut(local - idx);
           const out = products[idx]!;
@@ -215,9 +216,12 @@ export function CardamomJourney() {
       }
 
       // Hand the screen over to the next section on the final stretch.
-      const outro = 1 - mapRange(smooth, 0.96, 1);
+      const outro = 1 - mapRange(smooth, 0.9, 0.97);
       const wrapper = canvas.parentElement;
-      if (wrapper) wrapper.style.opacity = String(outro);
+      if (wrapper) {
+        wrapper.style.opacity = String(outro);
+        wrapper.style.visibility = outro < 0.02 ? "hidden" : "visible";
+      }
 
       raf = requestAnimationFrame(render);
     };
@@ -261,11 +265,11 @@ export function CardamomJourney() {
             sub="Distinctive. Warm. Unmistakable."
           />
           <StageCopy from={0.5} to={0.66} index="04" title="FROM POD TO PACK" sub="" />
-          <StageCopy from={0.64} to={0.8} index="10G" title="PURE CARDAMOM." sub="" />
-          <StageCopy from={0.78} to={0.845} index="10G" title="EVERYDAY" sub="" />
-          <StageCopy from={0.84} to={0.9} index="20G" title="ESSENTIAL" sub="" />
-          <StageCopy from={0.895} to={0.94} index="50G" title="FAMILY" sub="" />
-          <StageCopy from={0.935} to={1.01} index="100G" title="RESERVE" sub="" />
+          <StageCopy from={0.63} to={0.78} index="10G" title="PURE CARDAMOM." sub="" />
+          <StageCopy from={0.76} to={0.815} index="10G" title="EVERYDAY" sub="" />
+          <StageCopy from={0.81} to={0.86} index="20G" title="ESSENTIAL" sub="" />
+          <StageCopy from={0.855} to={0.9} index="50G" title="FAMILY" sub="" />
+          <StageCopy from={0.895} to={0.96} index="100G" title="RESERVE" sub="" />
         </div>
       </div>
     </section>
