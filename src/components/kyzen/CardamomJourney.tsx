@@ -171,7 +171,7 @@ export function CardamomJourney() {
         } else {
           // cross-transitions: outgoing pushes back + fades, incoming steps forward
           const segs = products.length - 1; // 3 transitions
-          const local = mapRange(smooth, 0.78, 0.995) * segs;
+          const local = mapRange(smooth, 0.78, 0.95) * segs;
           const idx = Math.min(segs - 1, Math.floor(local));
           const k = easeInOut(local - idx);
           const out = products[idx]!;
@@ -213,6 +213,11 @@ export function CardamomJourney() {
         el.style.opacity = String(a);
         el.style.transform = `translateY(${(1 - a) * 24}px)`;
       }
+
+      // Hand the screen over to the next section on the final stretch.
+      const outro = 1 - mapRange(smooth, 0.96, 1);
+      const wrapper = canvas.parentElement;
+      if (wrapper) wrapper.style.opacity = String(outro);
 
       raf = requestAnimationFrame(render);
     };
@@ -257,10 +262,10 @@ export function CardamomJourney() {
           />
           <StageCopy from={0.5} to={0.66} index="04" title="FROM POD TO PACK" sub="" />
           <StageCopy from={0.64} to={0.8} index="10G" title="PURE CARDAMOM." sub="" />
-          <StageCopy from={0.79} to={0.86} index="10G" title="EVERYDAY" sub="" />
-          <StageCopy from={0.855} to={0.925} index="20G" title="ESSENTIAL" sub="" />
-          <StageCopy from={0.92} to={0.96} index="50G" title="FAMILY" sub="" />
-          <StageCopy from={0.955} to={1.01} index="100G" title="RESERVE" sub="" />
+          <StageCopy from={0.78} to={0.845} index="10G" title="EVERYDAY" sub="" />
+          <StageCopy from={0.84} to={0.9} index="20G" title="ESSENTIAL" sub="" />
+          <StageCopy from={0.895} to={0.94} index="50G" title="FAMILY" sub="" />
+          <StageCopy from={0.935} to={1.01} index="100G" title="RESERVE" sub="" />
         </div>
       </div>
     </section>
