@@ -37,7 +37,7 @@ export function drawPod(
 
   const w = r * 0.62;
   const h = r;
-  const split = open * r * 0.55;
+  const split = open * r * 0.4;
 
   const half = (dir: 1 | -1) => {
     ctx.save();

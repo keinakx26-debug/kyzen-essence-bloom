@@ -102,7 +102,7 @@ export function CardamomJourney() {
       // ---- stage 1 + 2 : pod --------------------------------------------
       const podAlpha = 1 - mapRange(smooth, 0.34, 0.5);
       const podOpen = easeInOut(mapRange(smooth, 0.16, 0.32));
-      const dolly = 0.42 + easeOut(mapRange(smooth, 0, 0.34)) * 0.28;
+      const dolly = 0.4 + easeOut(mapRange(smooth, 0, 0.34)) * 0.2;
       const podRot = smooth * 3.2 + Math.sin(t * 0.0003) * 0.1;
       drawPod(ctx, cx, cy, base * dolly, podRot, podOpen, podAlpha);
 
