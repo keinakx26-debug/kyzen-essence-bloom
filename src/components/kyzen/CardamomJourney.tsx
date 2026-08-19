@@ -1,56 +1,64 @@
 import { useEffect, useRef } from "react";
-import { drawPacket, drawPod, drawSeed } from "@/lib/cardamom-draw";
+import { assets } from "@/config/assets";
 import { mapRange, easeInOut, easeOut, useGsap, useIsMobile, useReducedMotion } from "@/lib/motion";
 import { products } from "@/data/products";
 
 /**
- * The signature scroll sequence.
+ * The signature scroll sequence — built entirely from IMAGE LAYERS so any
+ * placeholder can be swapped for real photography without touching the motion.
+ *
+ *   Layer 1  selected pod   (assets.cardamomPod)
+ *   Layer 2  burst / seeds  (assets.cardamomSeeds)
+ *   Layer 3  aroma dust     (canvas particles)
+ *   Layer 4  KYZEN product  (assets.products['10g'])
  *
  * Progress timeline (0 -> 1 across the pinned scroll distance):
- *   0.00-0.16  pod hero shot, slow rotate + dolly in
- *   0.16-0.30  pod splits open
- *   0.30-0.46  seeds escape and float with depth
- *   0.46-0.60  seeds gather and morph into the 10g packet
- *   0.60-0.74  packet rotates a full 360deg
- *   0.74-1.00  10g -> 20g -> 50g -> 100g cross-transitions
+ *   0.00-0.24  one pod lifts out of the pile and travels toward the viewer
+ *   0.24-0.40  the camera moves into the pod, it fills the frame
+ *   0.36-0.58  the pod opens — seeds and aroma dust are revealed
+ *   0.55-0.78  the seeds gather and resolve into the KYZEN 10g pouch
+ *   0.78-1.00  quiet product presentation
  */
-
-const SEED_COUNT = 80;
-
 export function CardamomJourney() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const podRef = useRef<HTMLImageElement>(null);
+  const seedRef = useRef<HTMLDivElement>(null);
+  const packRef = useRef<HTMLDivElement>(null);
+  const dustRef = useRef<HTMLCanvasElement>(null);
   const progress = useRef(0);
-  const velocity = useRef(0);
-  const { gsap, ScrollTrigger } = useGsap();
+  const { ScrollTrigger } = useGsap();
   const reduced = useReducedMotion();
   const mobile = useIsMobile();
 
   useEffect(() => {
-    const canvas = canvasRef.current;
     const section = sectionRef.current;
-    if (!canvas || !section) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!section || reduced) return;
 
-    const stages = Array.from(
-      section.querySelectorAll<HTMLElement>("[data-stage]"),
-    );
+    const stages = Array.from(section.querySelectorAll<HTMLElement>("[data-stage]"));
+    ScrollTrigger.refresh();
 
-    // Deterministic seed field so renders are stable across frames.
-    const seeds = Array.from({ length: SEED_COUNT }, (_, i) => {
-      const a = (i / SEED_COUNT) * Math.PI * 2 * 3.7;
-      return {
-        a,
-        rr: 0.12 + ((i * 37) % 100) / 100 * 0.32,
-        driftX: Math.cos(a * 1.7) * (0.4 + ((i * 13) % 60) / 100),
-        driftY: Math.sin(a * 1.3) * (0.5 + ((i * 29) % 70) / 100),
-        depth: ((i * 17) % 100) / 100,
-        spin: ((i * 23) % 100) / 100 - 0.5,
-      };
+    const st = ScrollTrigger.create({
+      trigger: section,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true,
+      onUpdate: (self) => {
+        progress.current = self.progress;
+      },
     });
 
+    // ---- aroma dust ----------------------------------------------------
+    const canvas = dustRef.current;
+    const ctx = canvas?.getContext("2d") ?? null;
+    const dots = Array.from({ length: mobile ? 26 : 56 }, (_, i) => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: 0.5 + (i % 4) * 0.4,
+      s: 0.00006 + Math.random() * 0.00012,
+      a: 0.05 + Math.random() * 0.18,
+    }));
     const resize = () => {
+      if (!canvas || !ctx) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = canvas.clientWidth * dpr;
       canvas.height = canvas.clientHeight * dpr;
@@ -58,171 +66,89 @@ export function CardamomJourney() {
     };
     resize();
     window.addEventListener("resize", resize);
-    // Section height changes between mobile/desktop — recompute trigger bounds.
-    ScrollTrigger.refresh();
-
-    const st = ScrollTrigger.create({
-      trigger: section,
-      start: "top top",
-      end: "bottom bottom",
-      // Pinning is handled by CSS `position: sticky` on the canvas wrapper —
-      // ScrollTrigger only reports progress so the two never fight.
-      scrub: true,
-      onUpdate: (self) => {
-        progress.current = self.progress;
-        velocity.current = self.getVelocity();
-      },
-    });
 
     let raf = 0;
     let smooth = 0;
     const render = (time: number) => {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
       const p = progress.current;
       smooth += (p - smooth) * 0.12;
-      if (Math.abs(p - smooth) < 0.002) smooth = p;
-      const t = reduced ? 0 : time;
-      ctx.clearRect(0, 0, w, h);
+      if (Math.abs(p - smooth) < 0.0015) smooth = p;
 
-      const cx = w / 2;
-      const cy = h / 2;
-      const base = Math.min(w, h);
-
-      // ---- ambient aroma dust -------------------------------------------
-      ctx.save();
-      for (let i = 0; i < 40; i++) {
-        const px = ((i * 97) % 100) / 100;
-        const py = (((i * 53) % 100) / 100 + t * 0.00002 * (1 + (i % 3))) % 1;
-        ctx.globalAlpha = 0.05 + (i % 5) * 0.02;
-        ctx.fillStyle = "#c9a961";
-        ctx.beginPath();
-        ctx.arc(px * w, (1 - py) * h, 1 + (i % 3) * 0.5, 0, Math.PI * 2);
-        ctx.fill();
+      // ---- layer 1: the selected pod -----------------------------------
+      const pod = podRef.current;
+      if (pod) {
+        const lift = easeOut(mapRange(smooth, 0, 0.24));
+        const dive = easeInOut(mapRange(smooth, 0.24, 0.42));
+        const scale = 0.34 + lift * 0.5 + dive * 3.4;
+        const y = (1 - lift) * 22 - dive * 6;
+        const rot = -6 + lift * 8 + dive * 4;
+        const alpha = 1 - mapRange(smooth, 0.34, 0.44);
+        pod.style.transform = `translate3d(0, ${y}vh, 0) scale(${scale}) rotate(${rot}deg)`;
+        pod.style.opacity = String(alpha);
+        pod.style.filter = `blur(${dive * 7}px)`;
       }
-      ctx.restore();
 
-      // ---- stage 1 + 2 : pod --------------------------------------------
-      const podAlpha = 1 - mapRange(smooth, 0.34, 0.5);
-      const podOpen = easeInOut(mapRange(smooth, 0.16, 0.32));
-      const dolly = 0.4 + easeOut(mapRange(smooth, 0, 0.34)) * 0.2;
-      const podRot = smooth * 3.2 + Math.sin(t * 0.0003) * 0.1;
-      drawPod(ctx, cx, cy, base * dolly, podRot, podOpen, podAlpha);
+      // ---- layer 2: the burst / seed reveal ----------------------------
+      const seed = seedRef.current;
+      if (seed) {
+        const inA = easeOut(mapRange(smooth, 0.36, 0.48));
+        const out = mapRange(smooth, 0.58, 0.7);
+        seed.style.opacity = String(inA * (1 - out));
+        seed.style.transform = `scale(${1.5 - inA * 0.5 + out * 0.25})`;
+        seed.style.filter = `blur(${(1 - inA) * 14 + out * 10}px)`;
+      }
 
-      // ---- stage 3 + 4 : seeds float then gather ------------------------
-      const spread = easeOut(mapRange(smooth, 0.22, 0.5));
-      const gather = easeInOut(mapRange(smooth, 0.46, 0.6));
-      const seedsAlpha =
-        mapRange(smooth, 0.18, 0.28) * (1 - mapRange(smooth, 0.56, 0.62));
-      const vel = Math.max(-1, Math.min(1, velocity.current / 3000));
-
-      if (seedsAlpha > 0.001) {
-        const packW = base * 0.3;
-        const packH = packW * 1.45;
-        for (let i = 0; i < seeds.length; i++) {
-          const s = seeds[i]!;
-          // start: packed inside the pod cavity
-          const sx = cx + Math.cos(s.a) * base * 0.06 * s.rr;
-          const sy = cy + Math.sin(s.a) * base * 0.22 * s.rr;
-          // mid: floating field with depth
-          const fx =
-            sx + s.driftX * base * 0.45 * spread + Math.sin(t * 0.0004 + i) * 6;
-          const fy =
-            sy -
-            s.driftY * base * 0.4 * spread +
-            Math.cos(t * 0.0005 + i) * 6 +
-            vel * 24 * s.depth;
-          // end: distributed over the packet silhouette
-          const gx = cx + (((i * 41) % 100) / 100 - 0.5) * packW * 0.92;
-          const gy = cy + (((i * 61) % 100) / 100 - 0.5) * packH * 0.92;
-
-          const x = fx + (gx - fx) * gather;
-          const y = fy + (gy - fy) * gather;
-          const size = base * 0.011 * (0.6 + s.depth) * (1 - gather * 0.45);
-          drawSeed(
-            ctx,
-            x,
-            y,
-            size,
-            s.a + t * 0.0006 * s.spin * 4 + spread * s.spin * 6,
-            s.depth,
-            seedsAlpha,
-          );
+      // ---- layer 3: aroma dust -----------------------------------------
+      if (canvas && ctx) {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        const dustAlpha =
+          mapRange(smooth, 0.4, 0.5) * (1 - mapRange(smooth, 0.72, 0.86));
+        ctx.clearRect(0, 0, w, h);
+        if (dustAlpha > 0.01) {
+          const gather = easeInOut(mapRange(smooth, 0.58, 0.76));
+          for (const d of dots) {
+            d.y -= d.s * 16;
+            if (d.y < -0.05) d.y = 1.05;
+            // seeds/particles drift toward the centre as the pack forms
+            const x = d.x + (0.5 - d.x) * gather;
+            const y = d.y + (0.5 - d.y) * gather;
+            ctx.globalAlpha = d.a * dustAlpha;
+            ctx.fillStyle = "#c9a961";
+            ctx.beginPath();
+            ctx.arc(
+              (x + Math.sin(time * 0.0002 + d.y * 9) * 0.008) * w,
+              y * h,
+              d.r * (1 - gather * 0.4),
+              0,
+              Math.PI * 2,
+            );
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
         }
       }
 
-      // ---- stage 5 + 6 : packet forms, rotates, changes size ------------
-      const packetIn = easeOut(mapRange(smooth, 0.54, 0.64));
-      if (packetIn > 0.001) {
-        const rotStart = 0.62;
-        const rotEnd = 0.76;
-        const spinT = easeInOut(mapRange(smooth, rotStart, rotEnd));
-        const baseW = base * 0.3;
-        const baseH = baseW * 1.45;
-
-        if (smooth < 0.78) {
-          drawPacket(
-            ctx,
-            cx,
-            cy,
-            baseW * (0.86 + packetIn * 0.14),
-            baseH * (0.86 + packetIn * 0.14),
-            spinT * Math.PI * 2,
-            products[0]!.size,
-            packetIn,
-          );
-        } else {
-          // cross-transitions: outgoing pushes back + fades, incoming steps forward
-          const segs = products.length - 1; // 3 transitions
-          const local = mapRange(smooth, 0.76, 0.9) * segs;
-          const idx = Math.min(segs - 1, Math.floor(local));
-          const k = easeInOut(local - idx);
-          const out = products[idx]!;
-          const inc = products[idx + 1]!;
-          const scaleFor = (i: number) => 1 + i * 0.06; // family grows subtly
-
-          // outgoing
-          drawPacket(
-            ctx,
-            cx,
-            cy - k * base * 0.02,
-            baseW * scaleFor(idx) * (1 - k * 0.22),
-            baseH * scaleFor(idx) * (1 - k * 0.22),
-            -k * 0.5,
-            out.size,
-            1 - k,
-          );
-          // incoming
-          drawPacket(
-            ctx,
-            cx,
-            cy + (1 - k) * base * 0.02,
-            baseW * scaleFor(idx + 1) * (0.78 + k * 0.22),
-            baseH * scaleFor(idx + 1) * (0.78 + k * 0.22),
-            (1 - k) * 0.6,
-            inc.size,
-            k,
-          );
-        }
+      // ---- layer 4: the product ----------------------------------------
+      const pack = packRef.current;
+      if (pack) {
+        const inA = easeOut(mapRange(smooth, 0.64, 0.82));
+        const settle = easeInOut(mapRange(smooth, 0.8, 0.96));
+        pack.style.opacity = String(inA);
+        pack.style.transform = `translate3d(0, ${(1 - inA) * 6}vh, 0) scale(${
+          0.82 + inA * 0.18 + settle * 0.04
+        }) perspective(1200px) rotateY(${(1 - inA) * 12 - settle * 4}deg)`;
+        pack.style.filter = `blur(${(1 - inA) * 10}px)`;
       }
 
-      // ---- stage copy opacity, driven off the same timeline -------------
+      // ---- stage copy ----------------------------------------------------
       for (const el of stages) {
         const from = parseFloat(el.dataset['from'] || "0");
         const to = parseFloat(el.dataset['to'] || "1");
         const a =
-          mapRange(smooth, from, from + 0.05) *
-          (1 - mapRange(smooth, to - 0.05, to));
+          mapRange(smooth, from, from + 0.05) * (1 - mapRange(smooth, to - 0.05, to));
         el.style.opacity = String(a);
-        el.style.transform = `translateY(${(1 - a) * 24}px)`;
-      }
-
-      // Hand the screen over to the next section on the final stretch.
-      const outro = 1 - mapRange(smooth, 0.9, 0.97);
-      const wrapper = canvas.parentElement;
-      if (wrapper) {
-        wrapper.style.opacity = String(outro);
-        wrapper.style.visibility = outro < 0.02 ? "hidden" : "visible";
+        el.style.transform = `translateY(${(1 - a) * 20}px)`;
       }
 
       raf = requestAnimationFrame(render);
@@ -234,44 +160,99 @@ export function CardamomJourney() {
       window.removeEventListener("resize", resize);
       st.kill();
     };
-  }, [ScrollTrigger, gsap, reduced, mobile]);
+  }, [ScrollTrigger, reduced, mobile]);
 
-  // Shorter scroll distance on mobile so the story stays tight.
-  const height = reduced ? "auto" : mobile ? "380vh" : "620vh";
+  // Reduced motion: an elegant static composition instead of the sequence.
+  if (reduced) {
+    return (
+      <section id="cardamom" className="px-6 py-24 md:px-12">
+        <div className="mx-auto grid max-w-[1200px] items-center gap-12 md:grid-cols-2">
+          <img
+            src={assets.cardamomSeeds}
+            alt="Opened green cardamom pod revealing its seeds"
+            loading="lazy"
+            className="w-full rounded-sm object-cover"
+          />
+          <div>
+            <h2 className="font-serif text-4xl text-ivory">THE HEART OF CARDAMOM</h2>
+            <p className="mt-4 text-sm text-ivory/55">
+              Inside every pod lies its distinctive character.
+            </p>
+            <img
+              src={products[0]!.image}
+              alt="KYZEN 10g premium green cardamom pouch"
+              loading="lazy"
+              className="mt-10 w-56 object-contain"
+            />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
       id="cardamom"
       ref={sectionRef}
       className="relative"
-      style={{ height }}
+      style={{ height: mobile ? "420vh" : "620vh" }}
     >
       <div className="pointer-events-none sticky top-0 h-[100svh] w-full overflow-hidden">
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+        {/* Layer 1 — the selected pod (FUTURE PHOTOGRAPHY: isolated hero pod) */}
+        <img
+          ref={podRef}
+          src={assets.cardamomPod}
+          alt="A single green cardamom pod lifting toward the viewer"
+          width={1024}
+          height={1024}
+          className="absolute left-1/2 top-1/2 h-[90svh] w-[90svh] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain will-change-transform"
+        />
 
-        {/* Stage copy — opacity is driven by the render loop above */}
+        {/* Layer 2 — the burst / seed reveal (FUTURE PHOTOGRAPHY: macro seeds) */}
+        <div
+          ref={seedRef}
+          className="absolute inset-0 will-change-transform"
+          style={{ opacity: 0 }}
+        >
+          <img
+            src={assets.cardamomSeeds}
+            alt="Cardamom seeds revealed inside an opened pod"
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,var(--background)_88%)]" />
+        </div>
+
+        {/* Layer 3 — aroma dust */}
+        <canvas ref={dustRef} className="absolute inset-0 h-full w-full" />
+
+        {/* Layer 4 — the KYZEN pouch */}
+        <div
+          ref={packRef}
+          className="absolute left-1/2 top-1/2 w-[min(300px,58vw)] -translate-x-1/2 -translate-y-1/2 will-change-transform"
+          style={{ opacity: 0 }}
+        >
+          <img
+            src={products[0]!.image}
+            alt="KYZEN 10g premium green cardamom pouch"
+            loading="lazy"
+            className="w-full object-contain drop-shadow-[0_40px_60px_rgba(0,0,0,0.75)]"
+          />
+        </div>
+
+        {/* Stage copy — opacity driven by the render loop above */}
         <div className="pointer-events-none absolute inset-0">
-          <StageCopy from={0.0} to={0.2} index="01" title="THE POD" sub="Where the journey begins." />
+          <StageCopy from={0.0} to={0.22} index="01" title="ONE POD" sub="A thousand pods. One worth discovering." />
+          <StageCopy from={0.2} to={0.38} index="02" title="COME CLOSER" sub="" />
           <StageCopy
-            from={0.18}
-            to={0.36}
-            index="02"
-            title="THE HEART OF CARDAMOM"
-            sub="Inside every pod lies its character."
-          />
-          <StageCopy
-            from={0.34}
-            to={0.52}
+            from={0.38}
+            to={0.58}
             index="03"
-            title="NATURAL AROMA"
-            sub="Distinctive. Warm. Unmistakable."
+            title="THE HEART OF CARDAMOM"
+            sub="Inside every pod lies its distinctive character."
           />
-          <StageCopy from={0.5} to={0.66} index="04" title="FROM POD TO PACK" sub="" />
-          <StageCopy from={0.63} to={0.78} index="10G" title="PURE CARDAMOM." sub="" />
-          <StageCopy from={0.76} to={0.815} index="10G" title="EVERYDAY" sub="" />
-          <StageCopy from={0.81} to={0.86} index="20G" title="ESSENTIAL" sub="" />
-          <StageCopy from={0.855} to={0.9} index="50G" title="FAMILY" sub="" />
-          <StageCopy from={0.895} to={0.96} index="100G" title="RESERVE" sub="" />
+          <StageCopy from={0.58} to={0.76} index="04" title="FROM POD TO PACK" sub="" />
+          <StageCopy from={0.78} to={0.99} index="10G" title="EVERYDAY" sub="Aroma sealed at origin." />
         </div>
       </div>
     </section>
@@ -300,12 +281,8 @@ function StageCopy({
       className="absolute bottom-16 left-6 max-w-xs md:bottom-auto md:left-12 md:top-1/2 md:-translate-y-1/2 lg:left-20"
     >
       <span className="block font-serif text-4xl text-gold/70 md:text-6xl">{index}</span>
-      <h3 className="mt-3 font-serif text-2xl leading-tight text-ivory md:text-4xl">
-        {title}
-      </h3>
-      {sub && (
-        <p className="mt-3 text-xs leading-relaxed text-ivory/45 md:text-sm">{sub}</p>
-      )}
+      <h3 className="mt-3 font-serif text-2xl leading-tight text-ivory md:text-4xl">{title}</h3>
+      {sub && <p className="mt-3 text-xs leading-relaxed text-ivory/45 md:text-sm">{sub}</p>}
     </div>
   );
 }
