@@ -1,8 +1,10 @@
+import { assets } from "@/config/assets";
+
 const RITUALS = [
-  { t: "TEA", s: "A single crushed pod, steeped slow.", img: "/images/tea.jpg" },
-  { t: "COFFEE", s: "Warmth folded into the bitterness.", img: "/images/coffee.jpg" },
-  { t: "DESSERTS", s: "Cream, saffron, cardamom.", img: "/images/dessert.jpg" },
-  { t: "EVERYDAY", s: "The quiet note in ordinary hours.", img: "/images/everyday.jpg" },
+  { t: "TEA", s: "A single crushed pod, steeped slow.", img: assets.lifestyle.tea },
+  { t: "COFFEE", s: "Warmth folded into the bitterness.", img: assets.lifestyle.coffee },
+  { t: "DESSERTS", s: "Cream, saffron, cardamom.", img: assets.lifestyle.dessert },
+  { t: "EVERYDAY", s: "The quiet note in ordinary hours.", img: assets.lifestyle.everyday },
 ];
 
 export function RitualSection() {
@@ -19,7 +21,7 @@ export function RitualSection() {
               className="group relative overflow-hidden border-b border-ivory/10 px-2 py-14 md:border-b-0"
             >
               <div
-                className="absolute inset-0 scale-105 bg-cover bg-center opacity-0 transition-all duration-700 group-hover:scale-100 group-hover:opacity-20"
+                className="absolute inset-0 scale-105 bg-cover bg-center opacity-0 transition-all duration-700 group-hover:scale-100 group-hover:opacity-25"
                 style={{ backgroundImage: `url(${r.img})` }}
               />
               <div className="relative">

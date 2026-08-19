@@ -1,11 +1,15 @@
 import { useEffect, useRef } from "react";
 import { ArrowDown } from "lucide-react";
-import { drawPod } from "@/lib/cardamom-draw";
+import { gsap } from "gsap";
 import { useReducedMotion } from "@/lib/motion";
 import { MagneticButton } from "./MagneticButton";
-import { gsap } from "gsap";
+import { HeroCardamomPile } from "./HeroCardamomPile";
 
-/** Full-screen cinematic hero: procedural pod + floating aroma particles. */
+/**
+ * Full-screen cinematic hero.
+ * The composition is deliberately restrained: typography above, a photographic
+ * bed of cardamom in the lower third, and a fine veil of aroma particles.
+ */
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -19,12 +23,12 @@ export function Hero() {
 
     let raf = 0;
     const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
-    const particles = Array.from({ length: 46 }, () => ({
+    const particles = Array.from({ length: 40 }, () => ({
       x: Math.random(),
       y: Math.random(),
-      r: Math.random() * 1.8 + 0.4,
-      s: Math.random() * 0.00025 + 0.00008,
-      a: Math.random() * 0.4 + 0.1,
+      r: Math.random() * 1.6 + 0.4,
+      s: Math.random() * 0.00022 + 0.00008,
+      a: Math.random() * 0.35 + 0.08,
     }));
 
     const resize = () => {
@@ -42,15 +46,12 @@ export function Hero() {
     };
     if (!reduced) window.addEventListener("mousemove", onMove);
 
-    const render = (t: number) => {
+    const render = () => {
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       ctx.clearRect(0, 0, w, h);
-
       mouse.x += (mouse.tx - mouse.x) * 0.05;
       mouse.y += (mouse.ty - mouse.y) * 0.05;
-
-      // aroma particles
       for (const p of particles) {
         p.y -= p.s * (reduced ? 0 : 16);
         if (p.y < -0.05) p.y = 1.05;
@@ -61,18 +62,6 @@ export function Hero() {
         ctx.fill();
       }
       ctx.globalAlpha = 1;
-
-      const r = Math.min(w, h) * (w < 768 ? 0.34 : 0.32);
-      const drift = reduced ? 0 : Math.sin(t * 0.0004) * 0.06;
-      drawPod(
-        ctx,
-        w / 2 + mouse.x * 26,
-        h * 0.56 + mouse.y * 18 + (reduced ? 0 : Math.sin(t * 0.0006) * 8),
-        r,
-        drift + mouse.x * 0.12,
-        0,
-        0.9,
-      );
       raf = requestAnimationFrame(render);
     };
     raf = requestAnimationFrame(render);
@@ -107,25 +96,29 @@ export function Hero() {
       id="top"
       className="relative flex min-h-[100svh] items-center justify-center overflow-hidden"
     >
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,var(--background)_85%)]" />
+      <HeroCardamomPile />
+      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,var(--background)_92%)]" />
 
       <div
         ref={textRef}
-        className="relative z-10 flex flex-col items-center px-6 text-center"
+        className="relative z-10 -mt-[16svh] flex flex-col items-center px-6 text-center"
       >
-        <h1
-          data-reveal
-          className="font-serif text-[clamp(3.2rem,12vw,11rem)] leading-[0.88] tracking-[-0.02em] text-ivory"
-        >
-          CARDAMOM,
-          <br />
-          <span className="italic text-gold/90">ELEVATED.</span>
-        </h1>
         <p
           data-reveal
-          className="mt-8 max-w-md text-sm leading-relaxed text-ivory/55"
+          className="mb-6 text-[10px] uppercase tracking-[0.5em] text-gold/75"
         >
+          KYZEN
+        </p>
+        <h1
+          data-reveal
+          className="font-serif text-[clamp(3rem,11vw,10rem)] leading-[0.88] tracking-[-0.02em] text-ivory"
+        >
+          THE ESSENCE
+          <br />
+          <span className="italic text-gold/90">OF CARDAMOM.</span>
+        </h1>
+        <p data-reveal className="mt-8 max-w-md text-sm leading-relaxed text-ivory/55">
           Premium green cardamom, carefully selected and packed to preserve its
           natural aroma.
         </p>
@@ -136,6 +129,10 @@ export function Hero() {
           </MagneticButton>
         </div>
       </div>
+
+      <span className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.4em] text-ivory/35">
+        Scroll
+      </span>
     </section>
   );
 }
