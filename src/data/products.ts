@@ -1,11 +1,13 @@
-// Central product data — edit prices / images here only.
+import { assets } from "@/config/assets";
+
+// Central product data — edit prices / copy here only.
 export type Product = {
   size: string;
   name: string;
   price: string;
   weightLabel: string;
   description: string;
-  image: string; // drop real artwork at these paths in /public/images to replace placeholders
+  image: string; // resolved from src/config/assets.ts
 };
 
 export const products: Product[] = [
@@ -15,15 +17,15 @@ export const products: Product[] = [
     price: "₹249",
     weightLabel: "10G",
     description: "A small pouch for daily chai and quiet mornings.",
-    image: "/images/kyzen-10g.png",
+    image: assets.products["10g"]!,
   },
   {
     size: "20g",
     name: "Essential",
     price: "₹449",
     weightLabel: "20G",
-    description: "The balanced tin — enough for a season of rituals.",
-    image: "/images/kyzen-20g.png",
+    description: "The balanced pouch — enough for a season of rituals.",
+    image: assets.products["20g"]!,
   },
   {
     size: "50g",
@@ -31,7 +33,7 @@ export const products: Product[] = [
     price: "₹999",
     weightLabel: "50G",
     description: "Shared kitchens, long weekends, generous hands.",
-    image: "/images/kyzen-50g.png",
+    image: assets.products["50g"]!,
   },
   {
     size: "100g",
@@ -39,6 +41,6 @@ export const products: Product[] = [
     price: "₹1,849",
     weightLabel: "100G",
     description: "Our fullest expression. Aroma sealed at origin.",
-    image: "/images/kyzen-100g.png",
+    image: assets.products["100g"]!,
   },
 ];
